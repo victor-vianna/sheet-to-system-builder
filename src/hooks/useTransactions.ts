@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Transaction, Category } from '@/lib/types';
+import { Transaction } from '@/lib/types';
 import { loadTransactions, saveTransactions } from '@/lib/data';
 
 export function useTransactions() {
@@ -38,7 +38,7 @@ export function useTransactions() {
 
     const categoryData = Object.entries(byCategory)
       .map(([category, total]) => ({
-        category: category as Category,
+        category,
         total,
         percentage: totalExpense > 0 ? (total / totalExpense) * 100 : 0,
       }))
