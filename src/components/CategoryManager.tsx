@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Plus, Trash2, ChevronRight, ChevronDown, Settings } from 'lucide-react';
 
-interface CategoryManagerProps {
+export interface CategoryManagerProps {
   categories: CategoryStore;
   onAdd: (type: 'expense' | 'income', parentPath: string[], name: string, icon: string) => void;
   onRemove: (type: 'expense' | 'income', path: string[]) => void;
   onClose: () => void;
+  embedded?: boolean;
 }
 
 function CategoryTree({
@@ -156,8 +157,44 @@ function CategoryTree({
   );
 }
 
-export function CategoryManager({ categories, onAdd, onRemove, onClose }: CategoryManagerProps) {
+export function CategoryManager({ categories, onAdd, onRemove, onClose, embedded }: CategoryManagerProps) {
   const [tab, setTab] = useState<'expense' | 'income'>('expense');
+
+  const content = (
+    <>
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setTab('expense')}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'expense' ? 'bg-destructive/15 text-destructive' : 'text-muted-foreground hover:bg-muted'}`}
+        >
+          Despesas
+        </button>
+        <button
+          onClick={() => setTab('income')}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'income' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+        >
+          Receitas
+        </button>
+      </div>
+      <div className="overflow-y-auto flex-1 pr-1">
+        <CategoryTree
+          nodes={tab === 'expense' ? categories.expense : categories.income}
+          type={tab}
+          parentPath={[]}
+          onAdd={onAdd}
+          onRemove={onRemove}
+        />
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-lg">
+        {content}
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm">
@@ -171,31 +208,7 @@ export function CategoryManager({ categories, onAdd, onRemove, onClose }: Catego
             <X className="h-5 w-5" />
           </button>
         </div>
-
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setTab('expense')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'expense' ? 'bg-expense/15 text-expense' : 'text-muted-foreground hover:bg-muted'}`}
-          >
-            Despesas
-          </button>
-          <button
-            onClick={() => setTab('income')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'income' ? 'bg-income/15 text-income' : 'text-muted-foreground hover:bg-muted'}`}
-          >
-            Receitas
-          </button>
-        </div>
-
-        <div className="overflow-y-auto flex-1 pr-1">
-          <CategoryTree
-            nodes={tab === 'expense' ? categories.expense : categories.income}
-            type={tab}
-            parentPath={[]}
-            onAdd={onAdd}
-            onRemove={onRemove}
-          />
-        </div>
+        {content}
       </div>
     </div>
   );
