@@ -6,6 +6,8 @@ import { CategoryBreakdown } from '@/components/CategoryBreakdown';
 import { TransactionList } from '@/components/TransactionList';
 import { AddTransactionForm } from '@/components/AddTransactionForm';
 import { CategoryManager } from '@/components/CategoryManager';
+import { PurchasePlanning } from '@/components/PurchasePlanning';
+import { CreditCardControl } from '@/components/CreditCardControl';
 import { Plus, Wallet, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -43,6 +45,8 @@ export default function Index() {
         <SummaryCards {...summary} />
         <CategoryBreakdown categoryData={summary.categoryData} categories={categories} />
         <TransactionList transactions={transactions} onDelete={deleteTransaction} categories={categories} />
+        <PurchasePlanning />
+        <CreditCardControl />
       </main>
 
       {showForm && <AddTransactionForm onAdd={addTransaction} onClose={() => setShowForm(false)} categories={categories} />}

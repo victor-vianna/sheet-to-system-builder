@@ -10,7 +10,7 @@ import { Plus, Trash2, CreditCard, Check, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Progress } from '@/components/ui/progress';
+
 
 export function CreditCardControl() {
   const [data, setData] = useState<CreditCardMonth[]>(loadCreditCard);
