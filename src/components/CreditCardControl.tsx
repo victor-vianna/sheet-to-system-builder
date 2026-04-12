@@ -83,7 +83,9 @@ export function CreditCardControl() {
                     <TableCell className="text-right font-medium">{formatCurrency(entry.totalBill)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Progress value={pct} className="h-2 w-20" indicatorClassName={progressColor} />
+                        <div className="h-2 w-20 rounded-full bg-secondary overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${pct > 80 ? 'bg-destructive' : pct > 50 ? 'bg-[hsl(var(--warning))]' : 'bg-primary'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                        </div>
                         <span className="text-xs text-muted-foreground">{pct.toFixed(1)}%</span>
                       </div>
                     </TableCell>
