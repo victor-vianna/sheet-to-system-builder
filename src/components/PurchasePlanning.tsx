@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { PurchaseItem, PurchasePriority, PurchaseStatus, PURCHASE_PRIORITIES, PURCHASE_STATUSES, loadPurchases, savePurchases } from '@/lib/purchases';
+import { usePurchases } from '@/hooks/usePurchases';
+import { PurchasePriority, PurchaseStatus, PURCHASE_PRIORITIES, PURCHASE_STATUSES } from '@/lib/types';
 import { formatCurrency } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -7,56 +8,55 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, ShoppingCart, X, Check } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, X, Check, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 
 export function PurchasePlanning() {
-  const [items, setItems] = useState<PurchaseItem[]>(loadPurchases);
+  const { purchases, isLoading, addPurchase, deletePurchase, updatePurchase } = usePurchases();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ item: '', estimatedValue: '', priority: 'Média' as PurchasePriority, necessary: false, plannedMonth: '', status: 'Planejado' as PurchaseStatus, notes: '' });
 
-  const update = (newItems: PurchaseItem[]) => { setItems(newItems); savePurchases(newItems); };
-
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!form.item || !form.estimatedValue) return;
-    const newItem: PurchaseItem = {
-      id: crypto.randomUUID(), item: form.item, estimatedValue: parseFloat(form.estimatedValue),
-      priority: form.priority, necessary: form.necessary, plannedMonth: form.plannedMonth,
-      status: form.status, balanceAvailable: false, notes: form.notes,
-    };
-    update([...items, newItem]);
+    await addPurchase({
+      item: form.item,
+      valor_estimado: parseFloat(form.estimatedValue),
+      prioridade: form.priority,
+      necessario: form.necessary,
+      mes_planejado: form.plannedMonth || null,
+      status: form.status,
+      notas: form.notes || null,
+    });
     setForm({ item: '', estimatedValue: '', priority: 'Média', necessary: false, plannedMonth: '', status: 'Planejado', notes: '' });
     setShowForm(false);
   };
 
-  const handleDelete = (id: string) => update(items.filter(i => i.id !== id));
-
   const handleStatusChange = (id: string, status: PurchaseStatus) => {
-    update(items.map(i => i.id === id ? { ...i, status } : i));
+    updatePurchase({ id, status });
   };
 
-  const priorityColor = (p: PurchasePriority) => {
+  const priorityColor = (p: string) => {
     if (p === 'Alta') return 'bg-destructive/10 text-destructive border-destructive/20';
     if (p === 'Média') return 'bg-warning/10 text-warning border-warning/20';
     return 'bg-muted text-muted-foreground border-border';
   };
 
-  const statusColor = (s: PurchaseStatus) => {
-    if (s === 'Comprado') return 'bg-primary/10 text-primary border-primary/20';
-    if (s === 'Aprovado') return 'bg-primary/10 text-primary border-primary/20';
-    if (s === 'Em análise') return 'bg-warning/10 text-warning border-warning/20';
-    if (s === 'Cancelado') return 'bg-destructive/10 text-destructive border-destructive/20';
-    return 'bg-muted text-muted-foreground border-border';
-  };
-
-  const formatMonth = (m: string) => {
+  const formatMonth = (m: string | null) => {
     if (!m) return '—';
     const [y, mo] = m.split('-');
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     return `${months[parseInt(mo) - 1]}/${y}`;
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -85,24 +85,24 @@ export function PurchasePlanning() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.length === 0 && (
+              {purchases.length === 0 && (
                 <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum item planejado</TableCell></TableRow>
               )}
-              {items.map(item => (
+              {purchases.map(item => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.item}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.estimatedValue)}</TableCell>
-                  <TableCell><Badge variant="outline" className={priorityColor(item.priority)}>{item.priority}</Badge></TableCell>
-                  <TableCell>{item.necessary ? <Check className="h-4 w-4 text-primary" /> : <X className="h-4 w-4 text-destructive" />}</TableCell>
-                  <TableCell>{formatMonth(item.plannedMonth)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(item.valor_estimado)}</TableCell>
+                  <TableCell><Badge variant="outline" className={priorityColor(item.prioridade)}>{item.prioridade}</Badge></TableCell>
+                  <TableCell>{item.necessario ? <Check className="h-4 w-4 text-primary" /> : <X className="h-4 w-4 text-destructive" />}</TableCell>
+                  <TableCell>{formatMonth(item.mes_planejado)}</TableCell>
                   <TableCell>
                     <Select value={item.status} onValueChange={(v) => handleStatusChange(item.id, v as PurchaseStatus)}>
                       <SelectTrigger className="h-7 w-28 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>{PURCHASE_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">{item.notes || '—'}</TableCell>
-                  <TableCell><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
+                  <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">{item.notas || '—'}</TableCell>
+                  <TableCell><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deletePurchase(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -1,10 +1,16 @@
 import { formatCurrency } from '@/lib/format';
-import { CategoryStore, getIconForPath } from '@/lib/categories';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
+interface CategoryItem {
+  category: string;
+  icon: string;
+  color: string | null;
+  total: number;
+  percentage: number;
+}
+
 interface CategoryBreakdownProps {
-  categoryData: { category: string; total: number; percentage: number }[];
-  categories: CategoryStore;
+  categoryData: CategoryItem[];
 }
 
 const COLORS = [
@@ -14,8 +20,16 @@ const COLORS = [
   'hsl(120, 50%, 45%)',
 ];
 
-export function CategoryBreakdown({ categoryData, categories }: CategoryBreakdownProps) {
+export function CategoryBreakdown({ categoryData }: CategoryBreakdownProps) {
   const chartData = categoryData.map(d => ({ name: d.category, value: d.total }));
+
+  if (categoryData.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground animate-fade-in">
+        Nenhum gasto registrado.
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 animate-fade-in" style={{ animationDelay: '320ms' }}>
@@ -37,18 +51,15 @@ export function CategoryBreakdown({ categoryData, categories }: CategoryBreakdow
           </ResponsiveContainer>
         </div>
         <div className="flex-1 space-y-2">
-          {categoryData.map((item, i) => {
-            const icon = getIconForPath(categories.expense, [item.category]);
-            return (
-              <div key={item.category} className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                <span className="text-sm flex-shrink-0">{icon}</span>
-                <span className="text-sm flex-1 truncate">{item.category}</span>
-                <span className="text-sm font-medium text-muted-foreground">{item.percentage.toFixed(1)}%</span>
-                <span className="text-sm font-semibold w-28 text-right">{formatCurrency(item.total)}</span>
-              </div>
-            );
-          })}
+          {categoryData.map((item, i) => (
+            <div key={item.category} className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+              <span className="text-sm flex-shrink-0">{item.icon}</span>
+              <span className="text-sm flex-1 truncate">{item.category}</span>
+              <span className="text-sm font-medium text-muted-foreground">{item.percentage.toFixed(1)}%</span>
+              <span className="text-sm font-semibold w-28 text-right">{formatCurrency(item.total)}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
