@@ -1,12 +1,10 @@
-import { Transaction } from '@/lib/types';
+import { Lancamento } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/format';
-import { CategoryStore, getIconForPath } from '@/lib/categories';
 import { Trash2 } from 'lucide-react';
 
 interface TransactionListProps {
-  transactions: Transaction[];
+  transactions: Lancamento[];
   onDelete: (id: string) => void;
-  categories: CategoryStore;
 }
 
 const statusStyles: Record<string, string> = {
@@ -17,15 +15,16 @@ const statusStyles: Record<string, string> = {
   Cancelado: 'bg-expense/15 text-expense',
 };
 
-function getCategoryDisplay(tx: Transaction) {
-  const parts = [tx.category];
-  if (tx.subcategory) parts.push(tx.subcategory);
-  if (tx.detail) parts.push(tx.detail);
-  return parts;
-}
+export function TransactionList({ transactions, onDelete }: TransactionListProps) {
+  const sorted = [...transactions].sort((a, b) => b.data.localeCompare(a.data));
 
-export function TransactionList({ transactions, onDelete, categories }: TransactionListProps) {
-  const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
+  if (sorted.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground animate-fade-in">
+        Nenhum lançamento encontrado.
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-border bg-card animate-fade-in" style={{ animationDelay: '400ms' }}>
@@ -47,30 +46,23 @@ export function TransactionList({ transactions, onDelete, categories }: Transact
           </thead>
           <tbody>
             {sorted.map((tx) => {
-              const catPath = getCategoryDisplay(tx);
-              const catNodes = tx.type === 'Receita' ? categories.income : categories.expense;
-              const icon = getIconForPath(catNodes, catPath);
+              const cat = tx.categorias;
+              const icon = cat?.icone || '📁';
+              const catName = cat?.nome || 'Sem categoria';
 
               return (
                 <tr key={tx.id} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
-                  <td className="p-3 text-muted-foreground">{formatDate(tx.date)}</td>
-                  <td className="p-3 font-medium">{tx.description}</td>
+                  <td className="p-3 text-muted-foreground">{formatDate(tx.data)}</td>
+                  <td className="p-3 font-medium">{tx.descricao}</td>
                   <td className="p-3">
                     <div className="flex items-center gap-1.5">
                       <span>{icon}</span>
-                      <span className="flex items-center gap-1 text-xs">
-                        {catPath.map((p, i) => (
-                          <span key={i} className="flex items-center gap-1">
-                            {i > 0 && <span className="text-muted-foreground">›</span>}
-                            <span className={i === 0 ? '' : 'text-muted-foreground'}>{p}</span>
-                          </span>
-                        ))}
-                      </span>
+                      <span className="text-xs">{catName}</span>
                     </div>
                   </td>
-                  <td className="p-3 text-muted-foreground">{tx.paymentMethod}</td>
-                  <td className={`p-3 text-right font-semibold ${tx.type === 'Receita' ? 'text-income' : 'text-expense'}`}>
-                    {tx.type === 'Receita' ? '+' : '-'} {formatCurrency(tx.value)}
+                  <td className="p-3 text-muted-foreground">{tx.forma_pagamento || '—'}</td>
+                  <td className={`p-3 text-right font-semibold ${tx.tipo === 'Receita' ? 'text-income' : 'text-expense'}`}>
+                    {tx.tipo === 'Receita' ? '+' : '-'} {formatCurrency(tx.valor)}
                   </td>
                   <td className="p-3 text-center">
                     <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${statusStyles[tx.status] || ''}`}>

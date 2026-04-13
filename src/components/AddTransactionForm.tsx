@@ -1,22 +1,31 @@
 import { useState } from 'react';
-import { Transaction, TransactionType, PaymentMethod, TransactionStatus, PAYMENT_METHODS, STATUSES } from '@/lib/types';
-import { CategoryStore, CategoryNode } from '@/lib/categories';
+import { TransactionType, PaymentMethod, TransactionStatus, PAYMENT_METHODS, STATUSES, Categoria } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, X } from 'lucide-react';
 
 interface AddTransactionFormProps {
-  onAdd: (tx: Omit<Transaction, 'id'>) => void;
+  onAdd: (tx: {
+    data: string;
+    tipo: string;
+    categoria_id: string | null;
+    descricao: string;
+    valor: number;
+    forma_pagamento: string | null;
+    parcela_atual: number | null;
+    total_parcelas: number | null;
+    status: string;
+    notas?: string | null;
+  }) => void;
   onClose: () => void;
-  categories: CategoryStore;
+  expenseCategories: Categoria[];
+  incomeCategories: Categoria[];
 }
 
-export function AddTransactionForm({ onAdd, onClose, categories }: AddTransactionFormProps) {
+export function AddTransactionForm({ onAdd, onClose, expenseCategories, incomeCategories }: AddTransactionFormProps) {
   const [type, setType] = useState<TransactionType>('Despesa');
-  const [category, setCategory] = useState('');
-  const [subcategory, setSubcategory] = useState('');
-  const [detail, setDetail] = useState('');
+  const [categoriaId, setCategoriaId] = useState('');
   const [description, setDescription] = useState('');
   const [value, setValue] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -24,38 +33,37 @@ export function AddTransactionForm({ onAdd, onClose, categories }: AddTransactio
   const [installment, setInstallment] = useState('-');
   const [status, setStatus] = useState<TransactionStatus>('Pago');
 
-  const catNodes = type === 'Receita' ? categories.income : categories.expense;
-  const selectedCatNode = catNodes.find(n => n.name === category);
-  const subNodes = selectedCatNode?.children || [];
-  const selectedSubNode = subNodes.find(n => n.name === subcategory);
-  const detailNodes = selectedSubNode?.children || [];
+  const catNodes = type === 'Receita' ? incomeCategories : expenseCategories;
 
   const handleTypeChange = (v: string) => {
     setType(v as TransactionType);
-    setCategory('');
-    setSubcategory('');
-    setDetail('');
-  };
-
-  const handleCategoryChange = (v: string) => {
-    setCategory(v);
-    setSubcategory('');
-    setDetail('');
-  };
-
-  const handleSubcategoryChange = (v: string) => {
-    setSubcategory(v);
-    setDetail('');
+    setCategoriaId('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description || !value || !category) return;
+    if (!description || !value || !categoriaId) return;
+
+    let parcela_atual: number | null = null;
+    let total_parcelas: number | null = null;
+    if (installment && installment !== '-') {
+      const parts = installment.split('/');
+      if (parts.length === 2) {
+        parcela_atual = parseInt(parts[0]) || null;
+        total_parcelas = parseInt(parts[1]) || null;
+      }
+    }
+
     onAdd({
-      date, type, category, description,
-      subcategory: subcategory || undefined,
-      detail: detail || undefined,
-      value: parseFloat(value), paymentMethod, installment, status,
+      data: date,
+      tipo: type,
+      categoria_id: categoriaId || null,
+      descricao: description,
+      valor: parseFloat(value),
+      forma_pagamento: paymentMethod,
+      parcela_atual,
+      total_parcelas,
+      status,
     });
     onClose();
   };
@@ -97,49 +105,17 @@ export function AddTransactionForm({ onAdd, onClose, categories }: AddTransactio
 
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Categoria</label>
-          <Select value={category} onValueChange={handleCategoryChange}>
+          <Select value={categoriaId} onValueChange={setCategoriaId}>
             <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
             <SelectContent>
               {catNodes.map(c => (
-                <SelectItem key={c.id} value={c.name}>
-                  {c.icon} {c.name}
+                <SelectItem key={c.id} value={c.id}>
+                  {c.icone || '📁'} {c.nome}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-
-        {subNodes.length > 0 && (
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Subcategoria</label>
-            <Select value={subcategory} onValueChange={handleSubcategoryChange}>
-              <SelectTrigger><SelectValue placeholder="Opcional..." /></SelectTrigger>
-              <SelectContent>
-                {subNodes.map(s => (
-                  <SelectItem key={s.id} value={s.name}>
-                    {s.icon} {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {detailNodes.length > 0 && (
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Detalhe</label>
-            <Select value={detail} onValueChange={setDetail}>
-              <SelectTrigger><SelectValue placeholder="Opcional..." /></SelectTrigger>
-              <SelectContent>
-                {detailNodes.map(d => (
-                  <SelectItem key={d.id} value={d.name}>
-                    {d.icon} {d.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
 
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Valor (R$)</label>

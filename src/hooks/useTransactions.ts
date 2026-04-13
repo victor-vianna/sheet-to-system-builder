@@ -1,51 +1,83 @@
-import { useState, useCallback, useMemo } from 'react';
-import { Transaction } from '@/lib/types';
-import { loadTransactions, saveTransactions } from '@/lib/data';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Lancamento } from '@/lib/types';
+import { toast } from 'sonner';
 
 export function useTransactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>(loadTransactions);
+  const qc = useQueryClient();
 
-  const update = useCallback((txs: Transaction[]) => {
-    setTransactions(txs);
-    saveTransactions(txs);
-  }, []);
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ['lancamentos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lancamentos')
+        .select('*, categorias(*)')
+        .order('data', { ascending: false });
+      if (error) throw error;
+      return data as Lancamento[];
+    },
+  });
 
-  const addTransaction = useCallback((tx: Omit<Transaction, 'id'>) => {
-    const newTx = { ...tx, id: crypto.randomUUID() };
-    update([...transactions, newTx]);
-  }, [transactions, update]);
+  const addMutation = useMutation({
+    mutationFn: async (tx: {
+      data: string;
+      tipo: string;
+      categoria_id: string | null;
+      descricao: string;
+      valor: number;
+      forma_pagamento: string | null;
+      parcela_atual: number | null;
+      total_parcelas: number | null;
+      status: string;
+      notas?: string | null;
+    }) => {
+      const { error } = await supabase.from('lancamentos').insert(tx);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lancamentos'] });
+      qc.invalidateQueries({ queryKey: ['resumo_mensal'] });
+      qc.invalidateQueries({ queryKey: ['gastos_por_categoria'] });
+      toast.success('Lançamento adicionado');
+    },
+    onError: (e: Error) => toast.error('Erro ao adicionar: ' + e.message),
+  });
 
-  const deleteTransaction = useCallback((id: string) => {
-    update(transactions.filter(t => t.id !== id));
-  }, [transactions, update]);
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('lancamentos').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lancamentos'] });
+      qc.invalidateQueries({ queryKey: ['resumo_mensal'] });
+      qc.invalidateQueries({ queryKey: ['gastos_por_categoria'] });
+      toast.success('Lançamento excluído');
+    },
+    onError: (e: Error) => toast.error('Erro ao excluir: ' + e.message),
+  });
 
-  const updateTransaction = useCallback((id: string, data: Partial<Transaction>) => {
-    update(transactions.map(t => t.id === id ? { ...t, ...data } : t));
-  }, [transactions, update]);
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...data }: { id: string } & Partial<Lancamento>) => {
+      // Remove joined fields
+      const { categorias, ...rest } = data as any;
+      const { error } = await supabase.from('lancamentos').update(rest).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lancamentos'] });
+      qc.invalidateQueries({ queryKey: ['resumo_mensal'] });
+      qc.invalidateQueries({ queryKey: ['gastos_por_categoria'] });
+      toast.success('Lançamento atualizado');
+    },
+    onError: (e: Error) => toast.error('Erro ao atualizar: ' + e.message),
+  });
 
-  const summary = useMemo(() => {
-    const totalIncome = transactions.filter(t => t.type === 'Receita').reduce((s, t) => s + t.value, 0);
-    const totalExpense = transactions.filter(t => t.type === 'Despesa').reduce((s, t) => s + t.value, 0);
-    const totalPending = transactions.filter(t => t.status === 'Pendente').reduce((s, t) => s + t.value, 0);
-    const balance = totalIncome - totalExpense;
-
-    const byCategory = transactions
-      .filter(t => t.type === 'Despesa')
-      .reduce((acc, t) => {
-        acc[t.category] = (acc[t.category] || 0) + t.value;
-        return acc;
-      }, {} as Record<string, number>);
-
-    const categoryData = Object.entries(byCategory)
-      .map(([category, total]) => ({
-        category,
-        total,
-        percentage: totalExpense > 0 ? (total / totalExpense) * 100 : 0,
-      }))
-      .sort((a, b) => b.total - a.total);
-
-    return { totalIncome, totalExpense, totalPending, balance, categoryData };
-  }, [transactions]);
-
-  return { transactions, addTransaction, deleteTransaction, updateTransaction, summary };
+  return {
+    transactions,
+    isLoading,
+    addTransaction: addMutation.mutateAsync,
+    deleteTransaction: deleteMutation.mutateAsync,
+    updateTransaction: updateMutation.mutateAsync,
+  };
 }

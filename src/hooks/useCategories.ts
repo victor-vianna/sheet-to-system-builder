@@ -1,26 +1,49 @@
-import { useState, useCallback } from 'react';
-import { CategoryStore, CategoryNode, loadCategories, saveCategories, addNodeToTree, removeNodeFromTree } from '@/lib/categories';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Categoria } from '@/lib/types';
+import { toast } from 'sonner';
 
 export function useCategories() {
-  const [categories, setCategories] = useState<CategoryStore>(loadCategories);
+  const qc = useQueryClient();
 
-  const update = useCallback((store: CategoryStore) => {
-    setCategories(store);
-    saveCategories(store);
-  }, []);
+  const { data: categorias = [], isLoading } = useQuery({
+    queryKey: ['categorias'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categorias')
+        .select('*')
+        .order('nome');
+      if (error) throw error;
+      return data as Categoria[];
+    },
+  });
 
-  const addCategory = useCallback((type: 'expense' | 'income', parentPath: string[], name: string, icon: string) => {
-    const newNode: CategoryNode = { id: crypto.randomUUID(), name, icon, children: [] };
-    const updated = { ...categories };
-    updated[type] = addNodeToTree(updated[type], parentPath, newNode);
-    update(updated);
-  }, [categories, update]);
+  const addMutation = useMutation({
+    mutationFn: async (cat: { nome: string; tipo: string; icone?: string; cor?: string }) => {
+      const { error } = await supabase.from('categorias').insert(cat);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categorias'] });
+      toast.success('Categoria criada');
+    },
+    onError: (e: Error) => toast.error('Erro: ' + e.message),
+  });
 
-  const removeCategory = useCallback((type: 'expense' | 'income', path: string[]) => {
-    const updated = { ...categories };
-    updated[type] = removeNodeFromTree(updated[type], path);
-    update(updated);
-  }, [categories, update]);
+  const removeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('categorias').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categorias'] });
+      toast.success('Categoria removida');
+    },
+    onError: (e: Error) => toast.error('Erro: ' + e.message),
+  });
 
-  return { categories, addCategory, removeCategory };
+  const expense = categorias.filter(c => c.tipo === 'Despesa');
+  const income = categorias.filter(c => c.tipo === 'Receita');
+
+  return { categorias, expense, income, isLoading, addCategory: addMutation.mutateAsync, removeCategory: removeMutation.mutateAsync };
 }
