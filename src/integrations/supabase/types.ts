@@ -14,10 +14,194 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cartao_credito: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          data_pagamento: string | null
+          id: string
+          limite: number
+          mes_ano: string
+          pago: boolean
+          total_fatura: number
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          data_pagamento?: string | null
+          id?: string
+          limite?: number
+          mes_ano: string
+          pago?: boolean
+          total_fatura?: number
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          data_pagamento?: string | null
+          id?: string
+          limite?: number
+          mes_ano?: string
+          pago?: boolean
+          total_fatura?: number
+        }
+        Relationships: []
+      }
+      categorias: {
+        Row: {
+          cor: string | null
+          criado_em: string
+          icone: string | null
+          id: string
+          nome: string
+          tipo: string
+        }
+        Insert: {
+          cor?: string | null
+          criado_em?: string
+          icone?: string | null
+          id?: string
+          nome: string
+          tipo: string
+        }
+        Update: {
+          cor?: string | null
+          criado_em?: string
+          icone?: string | null
+          id?: string
+          nome?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      compras_planejadas: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          id: string
+          item: string
+          mes_planejado: string | null
+          necessario: boolean
+          notas: string | null
+          prioridade: string
+          status: string
+          valor_estimado: number
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          item: string
+          mes_planejado?: string | null
+          necessario?: boolean
+          notas?: string | null
+          prioridade?: string
+          status?: string
+          valor_estimado: number
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          item?: string
+          mes_planejado?: string | null
+          necessario?: boolean
+          notas?: string | null
+          prioridade?: string
+          status?: string
+          valor_estimado?: number
+        }
+        Relationships: []
+      }
+      lancamentos: {
+        Row: {
+          atualizado_em: string
+          categoria_id: string | null
+          criado_em: string
+          data: string
+          descricao: string
+          forma_pagamento: string | null
+          id: string
+          notas: string | null
+          parcela_atual: number | null
+          status: string
+          tipo: string
+          total_parcelas: number | null
+          valor: number
+        }
+        Insert: {
+          atualizado_em?: string
+          categoria_id?: string | null
+          criado_em?: string
+          data: string
+          descricao: string
+          forma_pagamento?: string | null
+          id?: string
+          notas?: string | null
+          parcela_atual?: number | null
+          status?: string
+          tipo: string
+          total_parcelas?: number | null
+          valor: number
+        }
+        Update: {
+          atualizado_em?: string
+          categoria_id?: string | null
+          criado_em?: string
+          data?: string
+          descricao?: string
+          forma_pagamento?: string | null
+          id?: string
+          notas?: string | null
+          parcela_atual?: number | null
+          status?: string
+          tipo?: string
+          total_parcelas?: number | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "gastos_por_categoria"
+            referencedColumns: ["categoria_id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      gastos_por_categoria: {
+        Row: {
+          categoria: string | null
+          categoria_id: string | null
+          cor: string | null
+          icone: string | null
+          qtd_lancamentos: number | null
+          total_gasto: number | null
+        }
+        Relationships: []
+      }
+      resumo_mensal: {
+        Row: {
+          mes_ano: string | null
+          mes_label: string | null
+          pendente_pagar: number | null
+          qtd_despesas: number | null
+          qtd_receitas: number | null
+          saldo: number | null
+          total_despesas: number | null
+          total_receitas: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
