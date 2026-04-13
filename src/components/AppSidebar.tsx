@@ -5,9 +5,12 @@ import {
   CreditCard,
   Settings,
   Wallet,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useTheme } from "@/hooks/useTheme";
 import {
   Sidebar,
   SidebarContent,
@@ -18,6 +21,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -33,6 +37,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { dark, toggle } = useTheme();
 
   return (
     <Sidebar collapsible="icon">
@@ -76,6 +81,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="p-3">
+        <button
+          onClick={toggle}
+          className="flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+        >
+          {dark ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+          {!collapsed && <span>{dark ? "Modo Claro" : "Modo Escuro"}</span>}
+        </button>
+      </SidebarFooter>
     </Sidebar>
   );
 }
